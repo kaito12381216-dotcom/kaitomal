@@ -29,7 +29,7 @@ const CONFIG = {
   email:    'fnic@nifty.com',                   // 例: grandmaster@gmail.com
   password: 'ua2uyns7',                   // Gmailはアプリパスワード（16桁）
   fetchLimit: 50,                 // 取得する最新メール件数
-  port: process.env.PORT || 10000,                     // ブラウザからアクセスするポート
+  port: process.env.PORT,                   // ブラウザからアクセスするポート
 };
 // ─────────────────────────────────────
 
