@@ -466,7 +466,7 @@ const server = http.createServer(async (req, res) => {
 
 // ─── 起動 ─────────────────────────────────────────────────────
 
-server.listen(CONFIG.port, 'localhost', () => {
+server.listen(CONFIG.port, '0.0.0.0', () => {
   console.log('');
   console.log('═══════════════════════════════════════════');
   console.log('  Grand-Master Mail  —  Node.js サーバー');
