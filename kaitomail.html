@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Grand-Master Mail</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:          #080808;
+    --bg-card:     #111;
+    --bg-header:   #0e0e0e;
+    --bg-sel:      #1a281a;
+    --bg-hover:    #181818;
+    --border:      #232323;
+    --border-hi:   #383838;
+    --gold:        #c8a060;
+    --gold-dim:    #7a6035;
+    --gold-bg:     rgba(200,160,96,.13);
+    --green:       #4fad74;
+    --text:        #e4e4e4;
+    --text2:       #8a8a8a;
+    --text3:       #484848;
+    --tag-imp-bg:  #3e1818; --tag-imp:  #f08080;
+    --tag-m3-bg:   #1a1e3a; --tag-m3:   #88aaee;
+    --tag-sw-bg:   #1e2a1a; --tag-sw:   #78c878;
+    --tag-off-bg:  #1a2636; --tag-off:  #72bcee;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { background:var(--bg); color:var(--text); font-family:'Noto Sans JP',sans-serif; height:100%; overflow:hidden; }
+
+  /* ═══ SHELL ═══ */
+  .shell { display:flex; flex-direction:column; height:100vh; max-width:480px; margin:0 auto; background:var(--bg); }
+
+  /* ── TOP BAR ── */
+  .topbar {
+    background: var(--bg-header);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 18px 14px;
+    flex-shrink: 0;
+  }
+  .topbar-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .logo { font-family:'Cormorant Garamond',serif; font-size:21px; font-weight:600; color:var(--gold); letter-spacing:.1em; }
+  .conn { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text2); }
+  .dot { width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:pulse 2.5s ease-in-out infinite; }
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+  .search-wrap { position:relative; }
+  .search-icon { position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:15px;color:var(--text3);pointer-events:none; }
+  .search-box {
+    width:100%; background:#0e0e0e; border:1px solid var(--border-hi); border-radius:12px;
+    padding:11px 14px 11px 38px; font-family:'Noto Sans JP',sans-serif;
+    font-size:16px; color:var(--text); outline:none; transition:border-color .15s;
+  }
+  .search-box:focus { border-color:var(--gold-dim); }
+  .search-box::placeholder { color:var(--text3); }
+
+  /* ── TABS ── */
+  .tabs {
+    display:flex; background:var(--bg-header); border-bottom:1px solid var(--border);
+    overflow-x:auto; flex-shrink:0; scrollbar-width:none;
+  }
+  .tabs::-webkit-scrollbar{display:none;}
+  .tab {
+    flex-shrink:0; padding:13px 20px; font-size:14px; color:var(--text2);
+    cursor:pointer; border-bottom:2px solid transparent; transition:all .15s;
+    white-space:nowrap; user-select:none; display:flex; align-items:center; gap:5px;
+  }
+  .tab:active{background:var(--bg-hover);}
+  .tab.active{color:var(--gold);border-bottom-color:var(--gold);}
+  .badge {
+    background:var(--gold-bg); color:var(--gold); font-size:11px; font-weight:700;
+    padding:1px 7px; border-radius:10px; min-width:20px; text-align:center;
+  }
+
+  /* ── MAIL LIST ── */
+  .mail-list { flex:1; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; }
+  .mail-list::-webkit-scrollbar{display:none;}
+
+  /* ── MAIL ITEM ── large, touch-friendly ── */
+  .mail-item {
+    display:flex; align-items:flex-start; gap:14px;
+    padding:18px 18px 16px;               /* ← 上下ゆったり */
+    border-bottom:1px solid var(--border);
+    cursor:pointer; position:relative; transition:background .1s;
+  }
+  .mail-item:active{background:var(--bg-hover);}
+  .mail-item.selected{background:var(--bg-sel);border-left:3px solid var(--gold);padding-left:15px;}
+
+  /* unread indicator */
+  .udot {
+    position:absolute; left:7px; top:50%; transform:translateY(-50%);
+    width:6px;height:6px;background:var(--gold);border-radius:50%;display:none;
+  }
+  .mail-item.unread .udot{display:block;}
+  .mail-item.unread .mail-subject{font-weight:700;color:var(--text);}
+
+  /* avatar — large */
+  .av {
+    width:52px;height:52px;border-radius:50%;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;
+    background:linear-gradient(135deg,#2a2a1e,#4a3e28);color:var(--gold);
+  }
+  .av.m3   {background:linear-gradient(135deg,#1a1e3a,#2a3060);color:var(--tag-m3);}
+  .av.sw   {background:linear-gradient(135deg,#1a2a1a,#2a4028);color:var(--tag-sw);}
+
+  .mc{flex:1;min-width:0;}
+  .mc-row1{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
+  .mfrom{font-size:15px;color:var(--text2);font-weight:500;}
+  .mtime{font-size:12px;color:var(--text3);flex-shrink:0;margin-left:8px;}
+  .msubj{font-size:14px;color:var(--text);margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4;}
+  .mprev{font-size:13px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:8px;line-height:1.4;}
+  .mtags{display:flex;gap:5px;flex-wrap:wrap;}
+  .tag{font-size:11px;padding:3px 9px;border-radius:10px;font-weight:500;white-space:nowrap;}
+  .t-imp {background:var(--tag-imp-bg);color:var(--tag-imp);}
+  .t-m3  {background:var(--tag-m3-bg); color:var(--tag-m3);}
+  .t-sw  {background:var(--tag-sw-bg); color:var(--tag-sw);}
+  .t-off {background:var(--tag-off-bg);color:var(--tag-off);}
+
+  /* ── DETAIL SHEET (slides in from right) ── */
+  .sheet {
+    position:fixed;inset:0;background:var(--bg);z-index:60;
+    display:flex;flex-direction:column;
+    transform:translateX(100%);transition:transform .28s cubic-bezier(.23,1,.32,1);
+    max-width:480px;margin:0 auto;
+  }
+  .sheet.open{transform:translateX(0);}
+
+  .sheet-bar {
+    background:var(--bg-header);border-bottom:1px solid var(--border);
+    padding:15px 18px;display:flex;align-items:center;gap:12px;flex-shrink:0;
+  }
+  .back{font-size:26px;color:var(--gold);cursor:pointer;line-height:1;padding-right:4px;flex-shrink:0;}
+  .sheet-from{font-size:15px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+  .sheet-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+
+  .sheet-head{padding:22px 18px 16px;border-bottom:1px solid var(--border);}
+  .sheet-subj{
+    font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:600;
+    color:var(--text);line-height:1.35;margin-bottom:16px;
+  }
+  .sheet-meta{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+  .sheet-av{
+    width:46px;height:46px;border-radius:50%;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:600;
+    background:linear-gradient(135deg,#3a3a28,#5e5040);color:var(--gold);
+  }
+  .sheet-av.m3 {background:linear-gradient(135deg,#1a1e3a,#2a3060);color:var(--tag-m3);}
+  .sheet-av.sw {background:linear-gradient(135deg,#1a2a1a,#2a4028);color:var(--tag-sw);}
+  .sheet-name{font-size:15px;color:var(--text);font-weight:500;}
+  .sheet-email{font-size:12px;color:var(--text2);margin-top:1px;}
+  .sheet-date{font-size:12px;color:var(--text3);margin-left:auto;text-align:right;white-space:nowrap;}
+  .sec-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+  .sec{font-size:10px;padding:2px 7px;border-radius:4px;font-weight:500;}
+  .s-ok  {background:rgba(79,173,116,.15);color:#60cc88;border:1px solid rgba(79,173,116,.3);}
+  .s-warn{background:rgba(200,60,44,.15); color:#e07060;border:1px solid rgba(200,60,44,.3);}
+  .s-info{background:rgba(58,123,191,.15);color:#72b8ee;border:1px solid rgba(58,123,191,.3);}
+
+  .sheet-text{padding:22px 18px 36px;font-size:16px;line-height:2.1;color:var(--text);}
+  .sheet-text p{margin-bottom:18px;}
+  .sheet-text .hl{
+    background:rgba(200,160,96,.07);border-left:3px solid var(--gold-dim);
+    padding:14px 16px;margin:18px 0;font-size:14px;border-radius:0 6px 6px 0;line-height:1.9;
+  }
+
+  /* action bar */
+  .act-bar{
+    background:var(--bg-header);border-top:1px solid var(--border);
+    padding:12px 18px calc(12px + env(safe-area-inset-bottom,0px));
+    display:flex;gap:10px;flex-shrink:0;
+  }
+  .abt{
+    flex:1;padding:14px 0;border-radius:12px;border:1px solid var(--border-hi);
+    background:transparent;color:var(--text2);
+    font-family:'Noto Sans JP',sans-serif;font-size:15px;font-weight:500;
+    cursor:pointer;transition:all .12s;display:flex;align-items:center;justify-content:center;gap:6px;
+  }
+  .abt:active{background:var(--bg-hover);}
+  .abt.pri{background:var(--gold-bg);color:var(--gold);border-color:var(--gold-dim);}
+  .abt.pri:active{background:rgba(200,160,96,.24);}
+
+  /* ── TOAST ── */
+  .toast{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(16px);
+    background:#1c1c1c;border:1px solid var(--gold-dim);border-radius:20px;
+    padding:11px 22px;font-size:14px;color:var(--text);z-index:300;
+    opacity:0;transition:all .25s cubic-bezier(.23,1,.32,1);
+    white-space:nowrap;max-width:90vw;box-shadow:0 4px 24px rgba(0,0,0,.7);
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  /* empty */
+  .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;
+    height:200px;color:var(--text3);gap:8px;font-size:14px;}
+  .empty-icon{font-size:40px;}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-row">
+      <div class="logo">Grand-Master Mail</div>
+      <div class="conn"><div class="dot"></div><span id="syncTime">--:--</span></div>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:10px;font-family:monospace;" id="acctLabel"></div>
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input class="search-box" type="text" placeholder="差出人・件名を検索…" id="searchInput" oninput="applyFilter()">
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab(this,'')">すべて <span class="badge" id="b-all">7</span></div>
+    <div class="tab" onclick="switchTab(this,'important')">⭐ 重要 <span class="badge" id="b-imp">3</span></div>
+    <div class="tab" onclick="switchTab(this,'m3')">🏥 M3 <span class="badge" id="b-m3">3</span></div>
+    <div class="tab" onclick="switchTab(this,'sw')">🎓 からたち <span class="badge" id="b-sw">2</span></div>
+    <div class="tab" onclick="switchTab(this,'office')">📋 事務 <span class="badge" id="b-off">2</span></div>
+  </div>
+
+  <!-- LIST -->
+  <div class="mail-list" id="mailList"></div>
+
+</div><!-- /shell -->
+
+<!-- DETAIL SHEET -->
+<div class="sheet" id="sheet">
+  <div class="sheet-bar">
+    <div class="back" onclick="closeSheet()">‹</div>
+    <div class="sheet-from" id="sFrom">—</div>
+  </div>
+  <div class="sheet-body">
+    <div class="sheet-head">
+      <div class="sheet-subj" id="sSubj">—</div>
+      <div class="sheet-meta">
+        <div class="sheet-av" id="sAv">—</div>
+        <div>
+          <div class="sheet-name"  id="sName">—</div>
+          <div class="sheet-email" id="sEmail">—</div>
+        </div>
+        <div class="sheet-date" id="sDate">—</div>
+      </div>
+      <div class="sec-row" id="sSec"></div>
+    </div>
+    <div class="sheet-text" id="sBody"></div>
+  </div>
+  <div class="act-bar">
+    <button class="abt pri" onclick="doAct('返信')">↩ 返信</button>
+    <button class="abt"     onclick="doAct('保存')">🗂 保存</button>
+    <button class="abt"     onclick="doAct('削除')">🗑 削除</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ════════════════════════════════════
+   Grand-Master Mail — フロントエンド
+   server.py と組み合わせて使用
+   ════════════════════════════════════ */
+
+const API = 'http://localhost:8888/api';
+
+const TAG_LABEL = { important:'⭐ 重要', m3:'🏥 M3', sw:'🎓 からたち', office:'📋 事務' };
+const TAG_CLS   = { important:'t-imp',  m3:'t-m3',  sw:'t-sw',       office:'t-off' };
+
+let MAILS     = [];   // APIから取得したメール
+let activeTag = '';
+let openId    = null;
+let loading   = false;
+
+/* ─── アバタークラス判定 ─── */
+function avClass(email, tags) {
+  if (tags.includes('m3'))  return 'm3';
+  if (tags.includes('sw'))  return 'sw';
+  return '';
+}
+
+/* ─── API からメール取得 ─── */
+async function fetchMails() {
+  if (loading) return;
+  loading = true;
+  showLoading(true);
+
+  try {
+    const res  = await fetch(API + '/mails');
+    const data = await res.json();
+
+    if (data.error) {
+      showError(data.error, data.message);
+      return;
+    }
+
+    // avフィールドを追加
+    MAILS = data.mails.map(m => ({
+      ...m,
+      av: avClass(m.email, m.tags),
+    }));
+
+    // アカウント表示
+    const acctEl = document.getElementById('acctLabel');
+    if (acctEl) acctEl.textContent = data.account || '';
+
+    applyFilter();
+    toast(`✓ ${data.count}件を取得しました`);
+  } catch (e) {
+    showError('connect', 'server.py が起動していません。ターミナルで python3 server.py を実行してください。');
+  } finally {
+    loading = false;
+    showLoading(false);
+  }
+}
+
+function showLoading(on) {
+  const el = document.getElementById('mailList');
+  if (on) {
+    el.innerHTML = `
+      <div class="empty">
+        <div class="empty-icon" style="animation:spin 1s linear infinite;display:inline-block">⟳</div>
+        <div>メールを取得中…</div>
+      </div>`;
+  }
+}
+
+function showError(type, msg) {
+  const icons = { config:'⚙️', auth:'🔑', connect:'📡', unknown:'⚠️' };
+  const hints = {
+    config:  'server.py を開いて EMAIL_ADDRESS と EMAIL_PASSWORD を設定してください。',
+    auth:    'メールアドレスまたはパスワードが正しくありません。\nGmailの場合はアプリパスワードを使用してください。',
+    connect: 'ターミナルで <code>python3 server.py</code> を実行してからリロードしてください。',
+    unknown: msg,
+  };
+  document.getElementById('mailList').innerHTML = `
+    <div class="empty" style="padding:32px 24px;gap:14px;text-align:center;">
+      <div style="font-size:48px">${icons[type]||'⚠️'}</div>
+      <div style="font-size:15px;color:var(--text)">${msg}</div>
+      <div style="font-size:13px;color:var(--text3);line-height:1.8">${hints[type]||''}</div>
+      <button onclick="fetchMails()" style="
+        margin-top:8px;padding:12px 28px;border-radius:10px;
+        background:var(--gold-bg);color:var(--gold);border:1px solid var(--gold-dim);
+        font-size:15px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;">
+        再接続する
+      </button>
+    </div>`;
+}
+
+/* ─── フィルタ・レンダリング ─── */
+function applyFilter() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const list = MAILS.filter(m => {
+    const tOk = !activeTag || m.tags.includes(activeTag);
+    const qOk = !q || m.subject.toLowerCase().includes(q) || m.from.toLowerCase().includes(q);
+    return tOk && qOk;
+  });
+  renderList(list);
+  updateBadges();
+}
+
+function renderList(mails) {
+  const el = document.getElementById('mailList');
+  if (!mails.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">📭</div>メールがありません</div>';
+    return;
+  }
+  el.innerHTML = '';
+  mails.forEach(m => {
+    const tags = m.tags
+      .filter(t => TAG_LABEL[t])
+      .map(t => `<span class="tag ${TAG_CLS[t]||''}">${TAG_LABEL[t]}</span>`)
+      .join('');
+    const d = document.createElement('div');
+    d.className = 'mail-item' + (m.unread?' unread':'') + (m.id===openId?' selected':'');
+    d.dataset.id = m.id;
+    d.onclick = () => openSheet(m.id);
+    d.innerHTML = `
+      <div class="udot"></div>
+      <div class="av ${m.av||''}">${(m.from||'?')[0]}</div>
+      <div class="mc">
+        <div class="mc-row1">
+          <span class="mfrom">${esc(m.from)}</span>
+          <span class="mtime">${esc(m.date)}</span>
+        </div>
+        <div class="msubj">${esc(m.subject)}</div>
+        <div class="mprev">${esc(m.preview)}</div>
+        <div class="mtags">${tags}</div>
+      </div>`;
+    el.appendChild(d);
+  });
+}
+
+function updateBadges() {
+  const cnt = tag => MAILS.filter(m => !tag || m.tags.includes(tag)).length;
+  document.getElementById('b-all').textContent = cnt('');
+  document.getElementById('b-imp').textContent = cnt('important');
+  document.getElementById('b-m3').textContent  = cnt('m3');
+  document.getElementById('b-sw').textContent  = cnt('sw');
+  document.getElementById('b-off').textContent = cnt('office');
+}
+
+function switchTab(el, tag) {
+  activeTag = tag;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  applyFilter();
+}
+
+/* ─── 詳細シート ─── */
+function openSheet(id) {
+  const m = MAILS.find(x => x.id === id);
+  if (!m) return;
+  openId = id;
+
+  document.getElementById('sFrom').textContent  = m.from;
+  document.getElementById('sSubj').textContent  = m.subject;
+  const av = document.getElementById('sAv');
+  av.textContent = (m.from||'?')[0];
+  av.className   = 'sheet-av ' + (m.av||'');
+  document.getElementById('sName').textContent  = m.from;
+  document.getElementById('sEmail').textContent = m.email;
+  document.getElementById('sDate').textContent  = m.date;
+
+  // 本文（改行をbrに変換済み）
+  document.getElementById('sBody').innerHTML = `<p>${m.body}</p>`;
+
+  // セキュリティバッジ
+  const spfOk  = m.spf  === 'PASS';
+  const dkimOk = m.dkim === 'PASS';
+  const dmarcOk= m.dmarc=== 'PASS';
+  document.getElementById('sSec').innerHTML = `
+    <span class="sec ${spfOk ?'s-ok':'s-warn'}">SPF ${m.spf||'—'}</span>
+    <span class="sec ${dkimOk?'s-ok':'s-warn'}">DKIM ${m.dkim||'—'}</span>
+    <span class="sec ${dmarcOk?'s-ok':'s-info'}">DMARC ${m.dmarc||'—'}</span>
+    <span class="sec s-info" style="font-size:9px">${esc(m.server||'')}</span>
+  `;
+
+  m.unread = false;
+  document.getElementById('sheet').classList.add('open');
+  applyFilter();
+}
+
+function closeSheet() {
+  document.getElementById('sheet').classList.remove('open');
+  openId = null;
+}
+
+function doAct(label) {
+  closeSheet();
+  toast('✓ ' + label + 'しました');
+}
+
+/* ─── ユーティリティ ─── */
+function esc(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 2400);
+}
+
+/* ─── 時刻 ─── */
+function tick() {
+  const n = new Date();
+  document.getElementById('syncTime').textContent =
+    String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
+}
+tick(); setInterval(tick, 30000);
+
+/* ─── 初期ロード ─── */
+showLoading(true);
+fetchMails();
+
+// 5分ごとに自動更新
+setInterval(fetchMails, 5 * 60 * 1000);
+</script>
+<style>
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</body>
+</html>
